@@ -242,7 +242,7 @@ impl Server {
 
                                     None
                                 } else {
-                                    let cc = clients.swap_remove(pos);
+                                    let cc = &clients[pos];
 
                                     cfg_if::cfg_if! {
                                         if #[cfg(any(target_os = "linux", target_os = "android"))] {
@@ -302,6 +302,10 @@ impl Server {
 
                                     if let Err(e) = cc.socket.send(ack.as_bytes()) {
                                         log::error!("failed to send ack: {}", e);
+                                    } else {
+                                        // Crash request communication might have taken a while, but we still have a connection
+                                        // to the client, so let's pretend we just got a ping.
+                                        clients[pos].last_update = Instant::now();
                                     }
 
                                     if action == LoopAction::Exit {
@@ -309,7 +313,7 @@ impl Server {
                                         return Ok(());
                                     }
 
-                                    Some(cc.socket)
+                                    None
                                 }
                             }
                         }
